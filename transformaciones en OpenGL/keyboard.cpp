@@ -6,7 +6,7 @@ bool Keyboard::exit; // Inicializa el booleano que indica si se presionó Alt+F4
 // Constructor de la clase Keyboard que inicializa las teclas mapeadas
 Keyboard::Keyboard(unsigned char shoot, unsigned char forward, unsigned char back, 
 				   unsigned char left, unsigned char right, unsigned char zoom, 
-				   unsigned char boost)
+				   unsigned char boost, unsigned char lights)
 {
 	for(int i = 0; i < 256; i++) // Itera sobre todas las teclas posibles
 	{
@@ -20,6 +20,7 @@ Keyboard::Keyboard(unsigned char shoot, unsigned char forward, unsigned char bac
 		map[4] = right; // Tecla para girar a la derecha
 		map[5] = zoom; // Tecla para hacer zoom
 		map[6] = boost; // Tecla para aumentar velocidad
+		map[7]  = lights; // Tecla para encender luces de la nave
 	}
 }
 
@@ -81,6 +82,10 @@ bool Keyboard::Zoom()
 bool Keyboard::Boost()
 {
 	return keyboard[map[6]]; // Retorna verdadero si la tecla de aumentar velocidad está presionada
+}
+bool Keyboard::Lights()
+{
+	return keyboard[map[7]]; // Retorna verdadero si la tecla enciende o apaga las luces de la nave
 }
 bool Keyboard::Exit() 
 {

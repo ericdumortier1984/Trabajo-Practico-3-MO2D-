@@ -8,13 +8,13 @@ class Keyboard // Clase Keyboard para manejar la entrada del teclado
 private:
 	static bool keyboard[256]; // Array estático que indica si cada tecla (0-255) está presionada
 	static bool exit; // Indica si se presionó la combinación Alt+F4
-	unsigned char map[7]; // Mapa de teclas personalizadas (7 teclas)
+	unsigned char map[8]; // Mapa de teclas personalizadas (8 teclas)
 	
 public:
 	// Constructor que inicializa el mapa de teclas con los caracteres dados
 	Keyboard(unsigned char key1, unsigned char key2, unsigned char key3, 
 			 unsigned char key4, unsigned char key5, unsigned char key6, 
-			 unsigned char key7);
+			 unsigned char key7, unsigned char key8);
 	
 	void InitKeyboard(); // Método para inicializar el estado del teclado
 	
@@ -34,5 +34,6 @@ public:
 	bool Right(); // Verifica si se debe girar a la derecha
 	bool Zoom(); // Verifica si se debe hacer zoom
 	bool Boost(); // Verifica si se debe aumentar la velocidad
+	bool Lights(); // Verifica si se deben encender los faros de la nave
 	bool Exit(); // Verifica si se debe salir del programa
 };
