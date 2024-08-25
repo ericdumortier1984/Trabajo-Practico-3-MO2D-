@@ -17,6 +17,9 @@ double
 	shipY = 80, // Posición en y
     shipAngle = 0, // Orientación nave
 	machineGunAngle = 0, // Orientación del arma
+	myEnemyX = 50, // Posicion inicial del enemigo en x
+	myEnemyY = 80, // Posicion inicial del enemigo en y
+	myEnemyAngle = 30, // Orientacion del enemigo
 	scale = 1.1; // Escala para el zoom
 	
 const double PI = 4*atan(1.0); // Cálculo del valor de PI
@@ -27,16 +30,18 @@ const double // Constantes para la posición en z de diferentes elementos
 	zCabin = 0.6,
 	zLeftWing = 0.5,
 	zRightWing = 0.5,
-	zLeftLight = 0.2,
-	zRightLight = 0.3,
+	zBackLight = 0.3,
 	zLeftFrontLight = 0.0,
 	zRightFrontLight = 0.0,
 	zThrusters = 0.3,
-	zEnemy = 0.3,
+	zBodyEnemy = 0.5,
+	zPanel = 0.2,
+	zAntenna = 0.3,
 	zPlanet = 0.3,
 	zRadar = 0.9;
 
 static int AngLineRadar = 0; // Variable estática para el ángulo de rotación de la línea del radar
+static int angleAntenna = 10; // angulo de rotacion de linea del radar
 
 int // Variables para el tamaño de la ventana y límites de movimiento
 	w = 800, // Ancho de la ventana
@@ -50,13 +55,10 @@ int // Variables para el tamaño de la ventana y límites de movimiento
 	myMilliseconds, // Milisegundos transcurridos desde el inicio
 	
 	myMotor = 100, // Motor inicial
+	myEnemyEnergy = 300, // Energia inicial del enemigo
 	
-	myUglyFontURSSX = -10, // Posicion del texto sobre el enemigo en x
+	myUglyFontURSSX = -13, // Posicion del texto sobre el enemigo en x
 	myUglyFontURSSY = 0, // Posicion del texto sobre el enemigo en y
-
-	myEnemyX = 50, // Posicion inicial del enemigo en x
-	myEnemyY = 80, // Posicion inicial del enemigo en y
-	myEnemyEnergy = 500, // Energia inicial del enemigo
 	
 	myPlanetX = 280, // Posicion planetaen x
 	myPlanetY = 200; // Posicion planeta en y
@@ -162,7 +164,6 @@ public:
 
 list<Bullet> bullet; // Lista para almacenar las balas
 
-
 // Renderiza texto en pantalla usando UglyFont
 void drawText(string _string, float x, float y, float textScale = 1.0, float red = 1.0, float green = 1.0, float blue = 1.0, float alpha = 1.0, float textAngle = 0.0, int textCenter = 0, float textWidth = 1.0 )
 {
@@ -178,68 +179,111 @@ void drawText(string _string, float x, float y, float textScale = 1.0, float red
 	glPopAttrib();  // Restaura los atributos
 }
 
+void drawBodyEnemy() // Dibuja el cuerpo del satélite
+{
+	glColor4f(1.0f, 0.0f, 0.0f, 0.8f);
+	glBegin(GL_QUADS);
+	glVertex2f(-20, -25); // Esquina inferior izquierda
+	glVertex2f(20, -25);  // Esquina inferior derecha
+	glVertex2f(20, 25);   // Esquina superior derecha
+	glVertex2f(-20, 25);  // Esquina superior izquierda
+	glEnd();
+	
+	glPushMatrix(); 
+	glColor4f(1.0f, 0.0f, 0.0f, 0.8f); 
+	glTranslated(0, 40, 0); // Translada la posición
+	glRotated(90, 0, 0, 1); // Rotacion
+	double radius = 15; // Radio de la trompa
+	double startAngle = 180; // Ángulo de inicio
+	double nextAngle = 180; // Ángulo final
+	int levelDetail = 30; // Detalle del dibujo
+	GLUquadricObj* q = gluNewQuadric(); // Crea un objeto cuadrático
+	gluQuadricDrawStyle(q, GLU_FILL); // Estilo de dibujo
+	gluPartialDisk(q, 0, radius, levelDetail, levelDetail, startAngle, nextAngle); // Dibuja una porción de un disco
+	gluDeleteQuadric(q); // Elimina el objeto cuadrático
+	glPopMatrix(); // Restaura la matriz
+}
+
+void drawPanel() // Dibuja panel izquierdo
+{
+	glColor4f(0.0f, 0.0f, 0.8f, 0.8f); // Color del panel
+	glBegin(GL_QUADS); // Inicia el dibujo del cuadrado
+	glVertex2d(-20, -15); // Esquina inferior izquierda
+	glVertex2d(20, -15); // Eaquina inferior derecha
+	glVertex2d(20, 5); // Esquina superior izquierda
+	glVertex2d(-20, 5); // Esquina superior derecha
+	glEnd(); // Finaliza el dibujo
+}
+
+void drawAntenna() // Dibuja antena del satelite
+{
+	glColor4f(1.0f,0.0f,0.0f, 0.8f);
+	glBegin(GL_TRIANGLE_FAN); // Antena
+	glVertex2d(0,0);
+	glVertex2d(0,15);
+	glVertex2d(-2,12);
+	glVertex2d(-4,10);
+	glVertex2d(-8,6);
+	glVertex2d(-10,0);
+	glVertex2d(-8,-6);
+	glVertex2d(-6,-10);
+	glVertex2d(-2,-12);
+	glVertex2d(0,-15);
+	glEnd();
+	
+	glBegin(GL_LINE_LOOP); // Loop para cerrar contorno
+	glColor4f(0.5f,0.5f,0.5f, 0.8f);
+	glVertex2d(0,0);
+	glVertex2d(0,15);
+	glVertex2d(-2,12);
+	glVertex2d(-4,10);
+	glVertex2d(-8,6);
+	glVertex2d(-10,0);
+	glVertex2d(-8,-6);
+	glVertex2d(-4,-10);
+	glVertex2d(-2,-12);
+	glVertex2d(0,-15);
+	glEnd();
+}
+	
 void drawEnemy() // Dibujamos el enemigo 
 {
-	glPushMatrix();
-	glTranslated(myEnemyX, myEnemyY, zEnemy);
-	glColor4f(1.0, 0.0, 0.0, 0.5); // Color rojo
+	glPushMatrix(); // Inicia push
+	glTranslated(myEnemyX, myEnemyY, zBodyEnemy); // Translada el cuerpo del enemigo
+	glRotated(myEnemyAngle, 0, 0, 1); // Rota el cuerpo del enemigo
+	drawBodyEnemy(); // Dibuja el cuerpo del enemigo
 	
-	// Dibuja el cuerpo del satélite
-	glBegin(GL_QUADS);
-	glVertex2f(-15, -10); // Esquina inferior izquierda
-	glVertex2f(15, -10);  // Esquina inferior derecha
-	glVertex2f(15, 10);   // Esquina superior derecha
-	glVertex2f(-15, 10);  // Esquina superior izquierda
-	glEnd();
+	glPushMatrix(); // Panel izquierdo
+	glTranslated(-40, 5, zPanel);
+	glRotated(0, 0, 0, 1);
+	drawPanel();
+	glPopMatrix();
 	
-	// Dibuja las alas
-	glColor4f(1.0, 1.0, 0.0, 1.0); // Color amarillo para las alas
+	glPushMatrix(); // Panel derecho
+	glTranslated(40, 5, zPanel);
+	glRotated(0, 0, 0, 1);
+	drawPanel();
+	glPopMatrix();
 	
-	// Ala superior
-	glBegin(GL_QUADS);
-	glVertex2f(-30, 10);  // Esquina inferior izquierda
-	glVertex2f(30, 10);   // Esquina inferior derecha
-	glVertex2f(30, 15);   // Esquina superior derecha
-	glVertex2f(-30, 15);  // Esquina superior izquierda
-	glEnd();
+	glPushMatrix(); // Antena
+	glTranslated(0, -25, zAntenna);
+	glRotated(angleAntenna, 0, 0, 1);
+	drawAntenna();
+	glPopMatrix(); 
 	
-	// Ala inferior
-	glBegin(GL_QUADS);
-	glVertex2f(-30, -15); // Esquina inferior izquierda
-	glVertex2f(30, -15);  // Esquina inferior derecha
-	glVertex2f(30, -10);  // Esquina superior derecha
-	glVertex2f(-30, -10); // Esquina superior izquierda
-	glEnd();
-	
-	// Ala izquierda
-	glBegin(GL_QUADS);
-	glVertex2f(-15, -30); // Esquina inferior izquierda
-	glVertex2f(-15, 30);  // Esquina inferior derecha
-	glVertex2f(-10, 30);  // Esquina superior derecha
-	glVertex2f(-10, -30); // Esquina superior izquierda
-	glEnd();
-	
-	// Ala derecha
-	glBegin(GL_QUADS);
-	glVertex2f(15, -30);  // Esquina inferior izquierda
-	glVertex2f(15, 30);   // Esquina inferior derecha
-	glVertex2f(10, 30);   // Esquina superior derecha
-	glVertex2f(10, -30);  // Esquina superior izquierda
-	glEnd();
-	
-	// Texto sobre el satelite (enemigo)
+	// Texto sobre el satelite
 	glTranslated(myUglyFontURSSX, myUglyFontURSSY, 0); 
-	glScaled(5, 5, 5);
-	glColor3f(1.0f, 1.0f, 0.0f);
+	glScaled(4, 4, 4);
+	glColor4f(1.0f, 1.0f, 0.0f, 0.8f);
 	glLineWidth(2);
-	YsDrawUglyFont("URSS", 0);
+	YsDrawUglyFont("U R S S", 0);
 	
 	glPopMatrix();
 }
 
 void drawShipCabin() // Dibuja la cabina de la nave
 {
-	glColor3f(0.678f, 0.847f, 0.902f); // Color de la cabina
+	glColor4f(0.0f, 0.0f, 0.9f, 0.8f); // Color de la cabina
 	double cabinRadius = 10; // Radio de la cabina
 	int levelDetail = 30; // nivel de detalle (smooth)
 	GLUquadricObj* q = gluNewQuadric(); // Crea un objeto de cuadrica (superficie curva) que se utilizará para dibujar la cabina
@@ -250,7 +294,7 @@ void drawShipCabin() // Dibuja la cabina de la nave
 
 void drawLeftWing() // Dibuja el ala izquierda
 {
-	glColor3f(1.0f, 1.0f, 1.0f); // Color del ala
+	glColor4f(0.0f, 0.0f, 1.0f, 0.5f); // Color del ala
 	glBegin(GL_TRIANGLES); // Inicia el dibujo de triángulos
 	glVertex2d(0, -10); // Punta del ala
 	glVertex2d(-20, 10); // Esquina izquierda
@@ -260,7 +304,7 @@ void drawLeftWing() // Dibuja el ala izquierda
 
 void drawRightWing() // Dibuja el ala derecha
 {
-	glColor3f(1.0f, 1.0f, 1.0f); // Color del ala
+	glColor4f(0.0f, 0.0f, 1.0f, 0.5f); // Color del ala
 	glBegin(GL_TRIANGLES); // Inicia el dibujo de triángulos
 	glVertex2d(0, -10); // Punta del ala
 	glVertex2d(-20, 10); // Esquina izquierda
@@ -268,20 +312,9 @@ void drawRightWing() // Dibuja el ala derecha
 	glEnd(); // Finaliza el dibujo
 }
 
-void drawLeftLight() // Dibuja la luz trasera izquierda
+void drawBackLight() // Dibuja la luz trasera izquierda
 {
-	glColor3f(1.0, 0.0, 0.0); // Color rojo
-	glBegin(GL_QUADS); // Inicia el dibujo de un cuadrado
-	glVertex2d(-20, -10); // Esquina inferior izquierda
-	glVertex2d(-15, -10); // Esquina inferior derecha
-	glVertex2d(-15, -5);  // Esquina superior derecha
-	glVertex2d(-20, -5);  // Esquina superior izquierda
-	glEnd(); // Finaliza el dibujo
-}
-
-void drawRightLight()
-{
-	glColor3f(1.0, 0.0, 0.0); // Color rojo
+	glColor4f(1.0f, 0.0f, 0.0f, 0.8f); // Color rojo
 	glBegin(GL_QUADS); // Inicia el dibujo de un cuadrado
 	glVertex2d(-20, -10); // Esquina inferior izquierda
 	glVertex2d(-15, -10); // Esquina inferior derecha
@@ -322,7 +355,7 @@ void drawFrontLights()
 	glPopMatrix(); // Restaurar la matriz
 	
 	// Faro delantero izquierdo
-	glColor3f(0.8, 0.8, 0.8); // Color gris claro
+	glColor4f(0.8f, 0.8f, 0.8f, 0.8f); // Color gris claro
 	glBegin(GL_QUADS); // Inicia el dibujo de un cuadrado
 	glVertex2d(-20, 10); // Esquina inferior izquierda
 	glVertex2d(-15, 10); // Esquina inferior derecha
@@ -331,7 +364,7 @@ void drawFrontLights()
 	glEnd(); // Finaliza el dibujo
 	
 	// Faro delantero derecho
-	glColor3f(0.8, 0.8, 0.8); // Color gris claro
+	glColor4f(0.8f, 0.8f, 0.8f, 0.8f); // Color gris claro
 	glBegin(GL_QUADS); // Inicia el dibujo de un cuadrado
 	glVertex2d(-20, 10); // Esquina inferior izquierda
 	glVertex2d(-15, 10); // Esquina inferior derecha
@@ -342,7 +375,7 @@ void drawFrontLights()
 
 void drawThrusters() // Dibuja los propulsores
 {
-	glColor3f(1.0, 0.5, 0.0); // Color naranja
+	glColor4f(1.0f, 0.4f, 0.0f, 0.8f); // Color naranja
 	glBegin(GL_QUADS); // Inicia el dibujo de un cuadrado
 	for (int i = 0; i < 6; ++i) // Dibuja varios propulsores
 	{
@@ -358,7 +391,7 @@ void drawThrusters() // Dibuja los propulsores
 
 void drawBodyShip() // Dibuja el cuerpo de la nave
 {
-	glColor3f(1.0f, 1.0f, 1.0f); // Color del cuerpo
+	glColor4f(1.0f, 1.0f, 1.0f, 0.8f); // Color del cuerpo
 	glBegin(GL_QUADS); // Inicia el dibujo de un cuadrado
 	glVertex2d(15, 40); // Esquina superior derecha
 	glVertex2d(-15, 40); // Esquina superior izquierda
@@ -367,7 +400,7 @@ void drawBodyShip() // Dibuja el cuerpo de la nave
 	glEnd(); // Finaliza el dibujo
 	
 	glPushMatrix(); // Inicia push para redondear la trompa de la nave
-	glColor3f(1.f, 1.f, 1.f); // Color del faro
+	glColor4f(1.f, 1.f, 1.f, 0.8f); // Color de la trompa
 	glTranslated(0, 40, 0); // Translada la posición
 	double radius = 15; // Radio de la trompa
 	double startAngle = 270; // Ángulo de inicio
@@ -389,15 +422,15 @@ void drawShip() // Dibuja el modelo completo de la nave
 	
 	// Dibuja el ala izquierda
 	glPushMatrix();
-	glTranslated(-20, -20, zLeftWing); // Translada ala izquierda
-	glRotated(50, 0, 0, 1); // Rota ala izquierda
+	glTranslated(-23, -20, zLeftWing); // Translada ala izquierda
+	glRotated(45, 0, 0, 1); // Rota ala izquierda
 	drawLeftWing(); // Dibuja el ala izquierda
 	glPopMatrix();
 	
 	// Dibuja el ala derecha
 	glPushMatrix();
-	glTranslated(20, -20, zRightWing); // Translada ala derecha
-	glRotated(-50, 0, 0, 1); // Rota ala derecha
+	glTranslated(23, -20, zRightWing); // Translada ala derecha
+	glRotated(-45, 0, 0, 1); // Rota ala derecha
 	drawRightWing(); // Dibuja el ala derecha
 	glPopMatrix();
 	
@@ -409,14 +442,14 @@ void drawShip() // Dibuja el modelo completo de la nave
 	
 	// Dibuja la luz trasera izquierda
 	glPushMatrix();
-	glTranslated(-17, -22, zLeftLight); // Translada luz trasera izquierda
-	drawLeftLight(); // Dibuja luz trasera izquierda
+	glTranslated(-17, -22, zBackLight); // Translada luz trasera izquierda
+	drawBackLight(); // Dibuja luz trasera izquierda
 	glPopMatrix();
 	
 	// Dibuja la luz trasera derecha
 	glPushMatrix();
-	glTranslated(54, -22, zRightLight); // Translada luz trasera derecha
-	drawRightLight(); // Dibuja luz trasera derecha
+	glTranslated(54, -22, zBackLight); // Translada luz trasera derecha
+	drawBackLight(); // Dibuja luz trasera derecha
 	glPopMatrix();
 	
 	// Dibuja los propulsores
@@ -441,9 +474,9 @@ void drawShip() // Dibuja el modelo completo de la nave
 	glPushMatrix();
 	glTranslated(-4, -34, 0);
 	glRotated(90, 0, 0, 1);
-	glScaled(6, 6, 6);
-	glColor3f(0.0, 0.0, 0.0);
-	glLineWidth(2);
+	glScaled(7, 7, 7);
+	glColor4f(0.0, 0.0, 0.0, 0.8f);
+	glLineWidth(1);
 	YsDrawUglyFont("US ARMY", 0);
 	glPopMatrix();
 	
@@ -452,7 +485,7 @@ void drawShip() // Dibuja el modelo completo de la nave
 
 void drawShipBoard() // Dibuja el portador de la nave
 {
-	glColor3f(0.135f, 0.235f, 0.335f); // Color gris del portanave
+	glColor4f(0.5f, 0.5f, 0.335f, 0.8f); // Color gris del portanave
 	glBegin(GL_QUADS); // Inicia el dibujo de líneas
 	glVertex2i(30, 20); glVertex2i(30, 160); // Línea vertical izquierda
 	glVertex2i(130, 20); glVertex2i(130, 160); // Línea vertical derecha
@@ -460,16 +493,26 @@ void drawShipBoard() // Dibuja el portador de la nave
 	glVertex2i(30, 160); glVertex2i(130, 160); // Línea horizontal superior
 	glEnd(); // Finaliza el dibujo del portanave
 	
-	glColor3f(1.0f, 1.0f, 1.0f); // Borde blanco del portanave
-	glLineWidth(5);
-	glBegin(GL_LINES);
+	// Dibuja el contorno
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // Color del contorno
+	glLineWidth(2.0); // Ancho de línea
+	glBegin(GL_LINE_LOOP); // Inicia el dibujo de un bucle de líneas
 	glVertex2i(30, 20); glVertex2i(30, 160); // Línea vertical izquierda
 	glVertex2i(130, 20); glVertex2i(130, 160); // Línea vertical derecha
-	glVertex2i(30, 20); glVertex2i(130, 20); // Línea horizontal inferior
 	glVertex2i(30, 160); glVertex2i(130, 160); // Línea horizontal superior
+	glVertex2i(30, 20); glVertex2i(130, 20); // Línea horizontal inferior
 	glEnd();
 	
-	glColor3f(0.0f, 0.1f, 0.0f);
+	// Texto sobre la plataforma
+	glPushMatrix();
+	glTranslated(70, 140, 0);
+	glRotated(0, 0, 0, 1);
+	glScaled(10, 10, 10);
+	glColor4f(0.0, 0.0, 0.0, 0.7f);
+	glLineWidth(2);
+	YsDrawUglyFont("GO!", 0);
+	glPopMatrix();
+	
 	glPointSize(2);
 	glBegin(GL_POINTS);
 	// Definimos las posiciones de las luces alrededor de la plataforma
@@ -510,11 +553,10 @@ void drawShipBoard() // Dibuja el portador de la nave
 	for (int i = 0; i < numLights; ++i)
 	{
 		// Calcular el tiempo de titilación
-		float elapsedTime = glutGet(GLUT_ELAPSED_TIME) % 3000; // Tiempo en milisegundos
-		float normalizedTime = elapsedTime / 2999.0f; // Normaliza el tiempo entre 0 y 1
+		float elapsedTime = glutGet(GLUT_ELAPSED_TIME) % 3000 / 2999.f; // Tiempo en milisegundos
 		// Cálculo de la opacidad de las luces
-		float opaqueMiniLights = 500 / (64 * 3.1415 * pow(0.5, 9)) * 
-			pow((pow(0.75, 2) - pow(normalizedTime - 0.75, 2)), 3) / 12.5335 + 0.1f;
+		float opaqueMiniLights = 315 / (64 * 3.1415 * pow(0.25, 9)) * 
+			pow((pow(0.25, 2) - pow(elapsedTime - 0.25, 2)), 3) / 12.5335 + 0.1f;
 		if (opaqueMiniLights > 1.0f)
 			opaqueMiniLights = 1.0f;
 		glColor4f(1.0f, 0.0f, 0.0f, opaqueMiniLights); // Establecemos el color y el alpha de los puntos
@@ -538,7 +580,7 @@ void drawRadar() // Dibuja el radar
 	
 	// Dibuja la línea del radar
 	glPushMatrix();
-	glColor3f(1.0f, 0.0f, 0.0f); // Color rojo para la línea
+	glColor4f(1.0f, 0.0f, 0.0f, 0.9f); // Color rojo para la línea
 	glTranslatef(700, 500, zRadar); // Translada la posición de la línea
 	glRotatef(AngLineRadar, 0.0, 0.0, -1.0); // Rota la línea
 	glLineWidth(3); // Ancho de línea
@@ -584,7 +626,7 @@ void drawBullet() // Dibuja las balas
 	glTranslated(0, 0, zBullet); // Translada la posición de las balas
 	// Dibuja cada bala en la lista
 	list<Bullet>::iterator b = bullet.begin();
-	glColor3f(1.5, 0.5, 0.5); // Color de las balas
+	glColor4f(1.5f, 0.5f, 0.5f, 0.9f); // Color de las balas
 	while (b != bullet.end()) // Itera sobre las balas
 	{
 		b->Draw(); // Dibuja la bala
@@ -596,7 +638,7 @@ void drawBullet() // Dibuja las balas
 
 void drawLimitsScreen() // Dibuja los límites de la pantalla
 {
-	glColor3f(0.0, 1.0, 0.0); // Color verde para los límites
+	glColor4f(0.0f, 1.0f, 0.0f, 0.8f); // Color verde para los límites
 	glLineWidth(5.0); // Ancho de línea
 	glBegin(GL_LINE_LOOP); // Inicia el dibujo de un bucle de líneas
 	glVertex3d(0, 600, 0.9); // Esquina superior izquierda
@@ -716,7 +758,9 @@ void reshape_cb(int w, int h) // Función de callback para cambiar el tamaño de l
 
 void display_cb() // Función de callback para mostrar el contenido de la ventana
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Limpia el buffer de color y profundidad
+	
+	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // Limpia el buffer de color y profundidad
 	drawBackground();
 	drawPlanet();
 	drawLimitsScreen(); // Dibuja los límites de la pantalla
@@ -780,6 +824,7 @@ void idle_cb() // Función de callback para la lógica del juego
 		lt = glutGet(GLUT_ELAPSED_TIME); // Actualiza el tiempo
 		
 		AngLineRadar = (AngLineRadar + 2) % 360; // Línea del radar gira 360°
+		angleAntenna = (angleAntenna + 2) % 360;
 		
 		// Actualiza las posiciones de las balas
 		list<Bullet>::iterator b = bullet.begin();

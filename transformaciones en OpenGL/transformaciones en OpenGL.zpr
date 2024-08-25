@@ -19,7 +19,7 @@ current_source=main.cpp
 path_char=\
 [source]
 path=main.cpp
-cursor=197:3
+cursor=971:78
 open=true
 [source]
 path=keyboard.cpp
