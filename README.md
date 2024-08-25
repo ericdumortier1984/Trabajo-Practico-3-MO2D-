@@ -9,4 +9,5 @@ Adicional para promocion:
 * Agregar al avión la capacidad de disparar al enemigo
 * Informar en pantalla la energía restante del enemigo
   
-![MO2D TP3](https://github.com/user-attachments/assets/54354ed2-7f98-4a4f-9eaa-b987557d5942)
+![MO2D TP3](https://github.com/user-attachments/assets/29e08658-6363-46f7-9bc0-273f8f1190d2)
+
